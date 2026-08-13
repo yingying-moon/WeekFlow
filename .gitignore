@@ -1,0 +1,29 @@
+# ===== Android / Gradle 构建产物 =====
+.gradle/
+build/
+app/build/
+**/build/
+captures/
+
+# 本地 SDK 路径配置（含本机绝对路径，不应提交）
+local.properties
+
+# 签名密钥（请勿提交，自行生成）
+*.keystore
+*.jks
+
+# 编译期日志
+*.log
+
+# IDE
+.idea/
+*.iml
+.DS_Store
+
+# 安装包：仅保留 release/ 下的发布包，忽略其它位置意外生成的 apk/aab
+*.apk
+!release/*.apk
+*.aab
+
+# 截图临时目录（本机生成用，不入库）
+_weekflow_shots/

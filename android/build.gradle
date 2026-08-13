@@ -1,0 +1,17 @@
+// 顶层构建脚本：使用 buildscript 方式声明 AGP 版本（与本地 Gradle 8.2.1 匹配）
+buildscript {
+    repositories {
+        maven { url 'https://maven.aliyun.com/repository/google' }
+        maven { url 'https://maven.aliyun.com/repository/public' }
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:8.2.1'
+    }
+}
+
+allprojects {
+    repositories {
+        maven { url 'https://maven.aliyun.com/repository/google' }
+        maven { url 'https://maven.aliyun.com/repository/public' }
+    }
+}

@@ -1,0 +1,999 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>WeekFlow · 运动 × 学习 × 阅读周期管理</title>
+<style>
+  :root{
+    --bg:#F6F7F9;
+    --card:#FFFFFF;
+    --text:#1F2329;
+    --muted:#8A909C;
+    --line:#ECEEF1;
+    --sport:#3FB58B;       /* 运动：柔和绿 */
+    --sport-soft:#E8F6F0;
+    --study:#5B8DEF;       /* 学习：柔和蓝 */
+    --study-soft:#EAF0FE;
+    --reading:#8B7BE8;     /* 阅读：柔和紫（新增模块） */
+    --reading-soft:#F0ECFB;
+    --accent:#FF7A8A;      /* 强调/完成：柔和珊瑚 */
+    --accent-soft:#FFEEF0;
+    --shadow:0 6px 24px rgba(31,35,41,.06);
+    --radius:18px;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",Segoe UI,Roboto,sans-serif;
+    background:#E7EAEF;color:var(--text);
+    display:flex;justify-content:center;
+    -webkit-font-smoothing:antialiased;
+  }
+  /* 手机框容器 */
+  #app{
+    width:100%;max-width:430px;height:100vh;max-height:100vh;
+    background:var(--bg);display:flex;flex-direction:column;
+    position:relative;overflow:hidden;
+    box-shadow:0 0 60px rgba(0,0,0,.12);
+  }
+  @media(min-width:760px){ #app{ height:92vh;margin:4vh 0;border-radius:28px; } }
+
+  /* 顶部栏 */
+  #topbar{
+    flex:0 0 auto;padding:14px 18px 10px;
+    background:var(--bg);border-bottom:1px solid var(--line);
+    z-index:5;
+  }
+  .top-row{display:flex;align-items:center;justify-content:space-between;}
+  .top-title{font-size:17px;font-weight:700;letter-spacing:.3px;}
+  .top-sub{font-size:12px;color:var(--muted);margin-top:2px;}
+
+  /* 内容区 */
+  #view{flex:1;overflow-y:auto;padding:16px 16px 96px;-webkit-overflow-scrolling:touch;}
+  .card{background:var(--card);border-radius:var(--radius);padding:16px;margin-bottom:14px;box-shadow:var(--shadow);}
+  .sec-title{font-size:13px;font-weight:700;color:var(--muted);margin:0 0 10px;letter-spacing:.5px;}
+  .card .head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+  .card .head .t{font-size:15px;font-weight:700;}
+  .card .head .s{font-size:13px;color:var(--muted);}
+  .card .head .s b{color:var(--text);}
+
+  /* 首页顶部日期卡 */
+  .today-hero{
+    border-radius:var(--radius);padding:18px 18px 16px;margin-bottom:14px;color:#fff;
+    background:linear-gradient(135deg,#FF9AA6,#FF7A8A);
+    box-shadow:0 10px 26px rgba(255,122,138,.30);
+  }
+  .today-hero .label{font-size:13px;opacity:.92;}
+  .today-hero .date{font-size:26px;font-weight:800;margin:4px 0 10px;}
+  .today-hero .cycle{font-size:13px;opacity:.95;display:flex;align-items:center;gap:6px;}
+  .today-hero .cycle b{font-weight:700;}
+
+  /* 完成度环 */
+  .ring-card{display:flex;align-items:center;gap:16px;}
+  .ring-wrap{position:relative;width:92px;height:92px;flex:0 0 auto;}
+  .ring-wrap .pct{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+  .ring-wrap .pct b{font-size:21px;font-weight:800;}
+  .ring-wrap .pct span{font-size:11px;color:var(--muted);}
+  .ring-info .t{font-size:15px;font-weight:700;}
+  .ring-info .d{font-size:13px;color:var(--muted);margin-top:4px;}
+  .ring-info .d b{color:var(--text);}
+
+  /* 子页签 */
+  .subtabs{display:flex;gap:8px;margin-bottom:14px;}
+  .subtab{
+    flex:1;padding:9px 0;border:none;border-radius:12px;background:var(--card);
+    font-size:14px;color:var(--muted);font-weight:600;box-shadow:var(--shadow);cursor:pointer;
+  }
+  .subtab.on{background:var(--text);color:#fff;}
+
+  /* 任务项 */
+  .task{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line);}
+  .task:last-child{border-bottom:none;}
+  .check{
+    width:24px;height:24px;border-radius:50%;border:2px solid #D5D9E0;flex:0 0 auto;
+    display:flex;align-items:center;justify-content:center;cursor:pointer;background:#fff;
+    font-size:14px;color:#fff;transition:.15s;
+  }
+  .task.done .check{background:var(--sport);border-color:var(--sport);}
+  .task .body{flex:1;min-width:0;}
+  .task .tt{font-size:15px;font-weight:600;}
+  .task.done .tt{color:var(--muted);text-decoration:line-through;}
+  .task .meta{font-size:12px;color:var(--muted);margin-top:3px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+  .tag{font-size:11px;padding:2px 8px;border-radius:20px;font-weight:700;flex:0 0 auto;}
+  .tag.sport{color:var(--sport);background:var(--sport-soft);}
+  .tag.study{color:var(--study);background:var(--study-soft);}
+  .tag.reading{color:var(--reading);background:var(--reading-soft);}
+  .vbadge{font-size:11px;color:var(--accent);background:var(--accent-soft);padding:2px 7px;border-radius:20px;font-weight:600;}
+
+  /* 空状态 */
+  .empty{padding:26px 10px;text-align:center;}
+  .empty .emo{font-size:34px;}
+  .empty .msg{font-size:14px;color:var(--muted);margin:8px 0 14px;}
+
+  /* 按钮 */
+  .btn{border:none;border-radius:14px;padding:13px;font-size:15px;font-weight:700;cursor:pointer;width:100%;}
+  .btn.primary{background:var(--text);color:#fff;}
+  .btn.accent{background:var(--accent);color:#fff;}
+  .btn.ghost{background:var(--card);color:var(--text);box-shadow:var(--shadow);}
+  .btn.danger{background:#fff;color:#E5484D;box-shadow:var(--shadow);}
+  .fab{
+    position:fixed;left:50%;transform:translateX(-50%);
+    bottom:78px;width:calc(100% - 64px);max-width:366px;z-index:6;
+  }
+  .fab .btn{box-shadow:0 10px 30px rgba(31,35,41,.18);}
+
+  /* 周期周历 */
+  .week-strip{display:flex;justify-content:space-between;}
+  .wd{flex:1;text-align:center;padding:6px 0;border-radius:12px;}
+  .wd .dow{font-size:11px;color:var(--muted);}
+  .wd .num{font-size:15px;font-weight:700;margin:4px 0;}
+  .wd .mk{font-size:14px;line-height:1;}
+  .wd.cur{background:var(--accent-soft);}
+  .wd.cur .num{color:var(--accent);}
+  .wd .mk.done{color:var(--sport);}
+  .wd .mk.cur{color:var(--accent);}
+  .wd .mk.none{color:#CFD3DA;}
+
+  /* 目标进度 */
+  .goal{margin-top:12px;}
+  .goal .gh{display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px;}
+  .goal .gh b{font-weight:700;}
+  .bar{height:9px;border-radius:20px;background:var(--line);overflow:hidden;}
+  .bar > i{display:block;height:100%;border-radius:20px;}
+
+  /* 历史周期 */
+  .hist{border-bottom:1px solid var(--line);}
+  .hist:last-child{border-bottom:none;}
+  .hist .hh{display:flex;justify-content:space-between;align-items:center;padding:13px 0;cursor:pointer;}
+  .hist .hh .l{font-size:14px;font-weight:600;}
+  .hist .hh .r{font-size:13px;color:var(--muted);display:flex;align-items:center;gap:6px;}
+  .hist .hh .r b{color:var(--sport);font-weight:700;}
+  .hist .det{padding:0 0 12px;}
+  .hist .day{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);padding:5px 0;border-top:1px dashed var(--line);}
+
+  /* 统计 */
+  .stats{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;}
+  .stat{background:var(--card);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow);}
+  .stat .n{font-size:24px;font-weight:800;}
+  .stat .l{font-size:12px;color:var(--muted);margin-top:4px;}
+  .stat .n.sport{color:var(--sport);}
+  .stat .n.study{color:var(--study);}
+  .stat .n.reading{color:var(--reading);}
+  .stat .n.acc{color:var(--accent);}
+
+  .row{display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid var(--line);cursor:pointer;font-size:15px;}
+  .row:last-child{border-bottom:none;}
+  .row .r{color:var(--muted);font-size:13px;}
+  .about{font-size:13px;color:var(--muted);line-height:1.7;}
+
+  /* 底部导航 */
+  #tabbar{
+    flex:0 0 auto;display:flex;background:var(--card);border-top:1px solid var(--line);
+    padding:8px 0 calc(8px + env(safe-area-inset-bottom));z-index:7;
+  }
+  .tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px 0;cursor:pointer;color:var(--muted);}
+  .tab .ic{width:24px;height:24px;}
+  .tab .tx{font-size:11px;font-weight:600;}
+  .tab.on{color:var(--accent);}
+  .tab.on .ic path,.tab.on .ic circle,.tab.on .ic rect,.tab.on .ic line{stroke:var(--accent);}
+  .tab.on .ic .fill{fill:var(--accent);}
+
+  /* 弹层 */
+  .overlay{position:fixed;inset:0;background:rgba(20,22,26,.45);display:flex;align-items:flex-end;justify-content:center;z-index:20;}
+  @media(min-width:760px){ .overlay{align-items:center;} }
+  .sheet{width:100%;max-width:430px;background:var(--bg);border-radius:22px 22px 0 0;padding:18px 18px calc(20px + env(safe-area-inset-bottom));max-height:90vh;overflow-y:auto;}
+  @media(min-width:760px){ .sheet{border-radius:22px;} }
+  .sheet .sh{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+  .sheet .sh .t{font-size:18px;font-weight:800;}
+  .sheet .sh .x{font-size:22px;color:var(--muted);cursor:pointer;line-height:1;}
+  .field{margin-bottom:14px;}
+  .field label{display:block;font-size:13px;font-weight:600;color:var(--muted);margin-bottom:7px;}
+  .field input,.field textarea,.field select{
+    width:100%;border:1px solid var(--line);border-radius:12px;padding:12px;font-size:15px;
+    background:#fff;color:var(--text);font-family:inherit;outline:none;
+  }
+  .field textarea{resize:none;height:64px;}
+  .field input:focus,.field textarea:focus{border-color:var(--accent);}
+  .seg{display:flex;gap:10px;}
+  .seg button{flex:1;padding:11px;border:1px solid var(--line);background:#fff;border-radius:12px;font-size:15px;font-weight:600;color:var(--muted);cursor:pointer;}
+  .seg button.on{border-color:var(--accent);color:var(--accent);background:var(--accent-soft);}
+  .video-row{display:flex;gap:10px;flex-wrap:wrap;}
+  .video-row .chip{background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px 11px;font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px;cursor:pointer;}
+  .sheet-actions{display:flex;gap:10px;margin-top:8px;}
+  .sheet-actions .btn{flex:1;}
+  .detail-meta{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px;font-size:13px;color:var(--muted);}
+  .detail-note{background:#fff;border-radius:12px;padding:12px;font-size:14px;color:var(--text);margin-bottom:12px;line-height:1.6;}
+  .vbtn{display:flex;align-items:center;gap:8px;width:100%;padding:12px;background:#fff;border:1px solid var(--line);border-radius:12px;margin-bottom:8px;font-size:14px;cursor:pointer;color:var(--text);text-align:left;}
+  .done-at{font-size:12px;color:var(--sport);font-weight:600;margin-bottom:10px;}
+
+  .toast{position:fixed;left:50%;bottom:120px;transform:translateX(-50%);background:rgba(31,35,41,.92);color:#fff;padding:11px 18px;border-radius:24px;font-size:13px;z-index:40;opacity:0;transition:.25s;pointer-events:none;max-width:80%;}
+  .toast.show{opacity:1;}
+
+  .hidden{display:none!important;}
+
+  /* 播放器页面（独立全屏，不放在弹窗里） */
+  .player{position:absolute;inset:0;background:#000;z-index:30;display:flex;flex-direction:column;}
+  .player .ph{display:flex;align-items:center;gap:12px;padding:12px 14px;color:#fff;background:rgba(0,0,0,.45);}
+  .player .ph .back{font-size:22px;cursor:pointer;line-height:1;color:#fff;}
+  .player .ph .pt{font-size:14px;font-weight:600;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .player video{flex:1;width:100%;background:#000;object-fit:contain;}
+  .player .pactions{display:flex;gap:10px;padding:12px 14px;background:#000;}
+  .player .pactions .btn{flex:1;}
+  .player .pempty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;color:#bbb;padding:20px;text-align:center;}
+  .player .pempty .big{font-size:42px;}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="topbar"></div>
+  <div id="view"></div>
+  <div id="tabbar"></div>
+</div>
+<div id="overlayRoot"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============ 工具函数 ============ */
+const WD=['日','一','二','三','四','五','六'];
+function pad(n){return String(n).padStart(2,'0');}
+function fmt(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());}
+function parseDate(s){const [y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d);}
+function startOfDay(d){const x=new Date(d);x.setHours(0,0,0,0);return x;}
+function startOfWeek(date){const d=startOfDay(date);const day=d.getDay();const diff=(day===0?-6:1-day);d.setDate(d.getDate()+diff);return d;}
+function endOfWeek(date){const s=startOfWeek(date);const e=new Date(s);e.setDate(s.getDate()+6);return e;}
+function addDays(d,n){const x=new Date(d);x.setDate(x.getDate()+n);return x;}
+function fmtCN(d){return (d.getMonth()+1)+'月'+d.getDate()+'日';}
+function weekdayCN(d){return '星期'+WD[d.getDay()];}
+function nowHM(){const d=new Date();return pad(d.getHours())+':'+pad(d.getMinutes());}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7);}
+function esc(s){return (s==null?'':String(s)).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function isValidUrl(u){return typeof u==='string'&&/^https?:\/\//i.test(u);}
+
+/* ============ 资源 / 类型 辅助 ============ */
+const TYPE_LABEL={sport:'运动',study:'学习',reading:'阅读'};
+const TYPE_EMO={sport:'🏃',study:'📚',reading:'📖'};
+const RES_DEFAULT_TITLE={local:'本地视频',bilibili:'B站视频',pdf:'PDF 文档',web:'网页链接',epub:'EPUB'};
+const RES_ICON={local:'▶',bilibili:'▶',pdf:'📄',web:'🔗',epub:'📚'};
+function resTitle(r){return (r&&r.title)||(r&&RES_DEFAULT_TITLE[r.type])||'资源';}
+function resIcon(r){return (r&&RES_ICON[r.type])||'📎';}
+// 资源点击分派：local → 播放器；bilibili/pdf/web/epub → 外部打开
+function openResource(taskId,resId){
+  const t=DB.tasks.find(x=>x.id===taskId);
+  const r=t&&(t.resources||[]).find(x=>x.id===resId);
+  if(!t||!r)return;
+  if(r.type==='local'){ openPlayer(taskId,resId); return; }
+  if(!r.url||!isValidUrl(r.url)){
+    if(r.type==='bilibili') toast(r.url?'视频链接无效':'未绑定视频');
+    else toast(r.url?'链接无效':'未绑定资源');
+    return;
+  }
+  window.open(r.url,'_blank'); // 系统浏览器/外部应用打开，不用内嵌 WebView
+}
+
+/* ============ 数据层 ============ */
+const STORE_KEY='weekflow_v1';
+let DB=null;
+let formDraft=null;     // 新建/编辑临时草稿
+let player=null;        // 播放器状态 {taskId,resId}
+
+function load(){
+  try{const raw=localStorage.getItem(STORE_KEY);if(raw)return JSON.parse(raw);}catch(e){}
+  return null;
+}
+function save(){localStorage.setItem(STORE_KEY,JSON.stringify(DB));}
+
+function newResource(type,extra){
+  return Object.assign({id:uid(),type,title:'',url:'',localPath:'',localUrl:null,thumbnail:null,createdAt:fmt(new Date())},extra||{});
+}
+
+function seed(){
+  const today=startOfDay(new Date());
+  const mon=startOfWeek(today);
+  const tasks=[]; const goals=[];
+  function cycId(d){return fmt(startOfWeek(d));}
+  // 运动/学习计划
+  const plan=[
+    {dow:1,type:'sport',title:'拉伸 15 分钟',dur:15},
+    {dow:1,type:'sport',title:'深蹲 50 个',dur:10},
+    {dow:1,type:'study',title:'英语单词 30 个',dur:15},
+    {dow:2,type:'sport',title:'跑步 30 分钟',dur:30},
+    {dow:2,type:'study',title:'英语听力 20 分钟',dur:20},
+    {dow:3,type:'sport',title:'力量训练 40 分钟',dur:40},
+    {dow:3,type:'study',title:'阅读 30 分钟',dur:30},
+    {dow:4,type:'sport',title:'HIIT 20 分钟',dur:20},
+    {dow:4,type:'study',title:'英语口语 20 分钟',dur:20},
+    {dow:5,type:'sport',title:'慢跑 40 分钟',dur:40},
+    {dow:6,type:'study',title:'复盘笔记 30 分钟',dur:30},
+    {dow:7,type:'study',title:'观影/阅读 60 分钟',dur:60},
+  ];
+  // 阅读计划
+  const rplan=[
+    {dow:2,title:'《人类简史》精读',dur:30,pages:30},
+    {dow:4,title:'《深入理解 Flutter》',dur:40,pages:0},
+    {dow:6,title:'技术博客精读',dur:25,pages:0},
+    {dow:7,title:'微信读书·随笔',dur:20,pages:0},
+  ];
+  for(let wk=-3;wk<=0;wk++){
+    const ws=addDays(mon,wk*7);
+    const cid=cycId(ws);
+    plan.forEach(p=>{
+      const d=addDays(ws,p.dow-1);
+      let status='pending';
+      const isPast=d<today, isToday=fmt(d)===fmt(today);
+      if(isPast) status='done';
+      else if(isToday) status=(p.type==='sport')?'done':'pending';
+      tasks.push({id:uid(),title:p.title,type:p.type,date:fmt(d),cycleId:cid,
+        duration:p.dur,note:'',status,pages:null,
+        completedAt: status==='done'?fmtCN(d)+' '+nowHM():null,
+        createdAt:fmt(d),resources:[]});
+    });
+    rplan.forEach(p=>{
+      const d=addDays(ws,p.dow-1);
+      let status='pending';
+      const isPast=d<today, isToday=fmt(d)===fmt(today);
+      if(isPast) status='done';
+      else if(isToday) status=(p.dow%2===0)?'done':'pending';
+      tasks.push({id:uid(),title:p.title,type:'reading',date:fmt(d),cycleId:cid,
+        duration:p.dur,note:'',status,pages:p.pages||null,
+        completedAt: status==='done'?fmtCN(d)+' '+nowHM():null,
+        createdAt:fmt(d),resources:[]});
+    });
+    goals.push({id:uid(),cycleId:cid,type:'sport',target:4,unit:'次'});
+    goals.push({id:uid(),cycleId:cid,type:'study',target:6,unit:'小时'});
+    goals.push({id:uid(),cycleId:cid,type:'reading',target:5,unit:'小时'});
+  }
+  // 示例资源
+  const bili=DB_tasks_find(tasks,'sport','力量训练 40 分钟',cycId(today));
+  if(bili) bili.resources.push(newResource('bilibili',{title:'跟练：家庭力量训练',url:'https://www.bilibili.com/video/BV1GJ411x7h7'}));
+  const pdf=DB_tasks_find(tasks,'reading','《深入理解 Flutter》',cycId(today));
+  if(pdf) pdf.resources.push(newResource('pdf',{title:'配套 PDF 讲义',url:'https://example.com/flutter-notes.pdf'}));
+
+  return {tasks,goals,settings:{theme:'light'},seeded:true};
+}
+function DB_tasks_find(arr,type,title,cid){return arr.find(t=>t.type===type&&t.title===title&&t.cycleId===cid);}
+
+/* 兼容 V0.1 旧数据：videos → resources */
+function normalizeDB(){
+  if(!DB)return;
+  if(!DB.tasks)DB.tasks=[];
+  if(!DB.goals)DB.goals=[];
+  DB.tasks.forEach(t=>{
+    if(!t.resources){
+      t.resources=(t.videos||[]).map(v=>newResource(v.type==='bilibili'?'bilibili':'local',
+        {title:v.title||(v.type==='bilibili'?'B站视频':'本地视频'),url:v.url||'',localUrl:v.localUrl||null}));
+      delete t.videos;
+    }
+    (t.resources||[]).forEach(r=>{ if(!r.id)r.id=uid(); if(!r.type)r.type='local'; if(r.localUrl===undefined)r.localUrl=null; if(r.pages===undefined)r.pages=null; });
+    if(t.pages===undefined)t.pages=null;
+  });
+}
+/* 迁移：若没有任何阅读任务，则补齐近 4 周阅读演示数据 */
+function ensureReadingSeed(){
+  if(DB.tasks.some(t=>t.type==='reading'))return;
+  const rplan=[
+    {dow:2,title:'《人类简史》精读',dur:30,pages:30},
+    {dow:4,title:'《深入理解 Flutter》',dur:40,pages:0},
+    {dow:6,title:'技术博客精读',dur:25,pages:0},
+    {dow:7,title:'微信读书·随笔',dur:20,pages:0},
+  ];
+  for(let wk=-3;wk<=0;wk++){
+    const ws=addDays(startOfWeek(new Date()),wk*7);
+    const cid=fmt(ws);
+    rplan.forEach(p=>{
+      const d=addDays(ws,p.dow-1);
+      let status='pending';
+      const isPast=d<startOfDay(new Date()), isToday=fmt(d)===fmt(startOfDay(new Date()));
+      if(isPast)status='done'; else if(isToday)status=(p.dow%2===0)?'done':'pending';
+      DB.tasks.push({id:uid(),title:p.title,type:'reading',date:fmt(d),cycleId:cid,
+        duration:p.dur,note:'',status,pages:p.pages||null,
+        completedAt: status==='done'?fmtCN(d)+' '+nowHM():null,
+        createdAt:fmt(d),resources:[]});
+    });
+    DB.goals.push({id:uid(),cycleId:cid,type:'reading',target:5,unit:'小时'});
+  }
+}
+
+/* ============ 周期/统计计算 ============ */
+function cycleIdForDate(d){return fmt(startOfWeek(d));}
+function currentCycleId(){return cycleIdForDate(new Date());}
+function cycleRangeStr(id){const s=parseDate(id);const e=endOfWeek(s);return fmt(s).slice(5)+' — '+fmt(e).slice(5);}
+function tasksOfCycle(id){return DB.tasks.filter(t=>t.cycleId===id);}
+function cycleStats(id){
+  const ts=tasksOfCycle(id);
+  const total=ts.length, done=ts.filter(t=>t.status==='done').length;
+  const sp=ts.filter(t=>t.type==='sport'), spd=sp.filter(t=>t.status==='done').length;
+  const st=ts.filter(t=>t.type==='study'), std=st.filter(t=>t.status==='done').length;
+  const rd=ts.filter(t=>t.type==='reading'), rdd=rd.filter(t=>t.status==='done').length;
+  return {
+    total,done,
+    rate: total?Math.round(done/total*100):null,
+    sportRate: sp.length?Math.round(spd/sp.length*100):null,
+    studyRate: st.length?Math.round(std/st.length*100):null,
+    readingRate: rd.length?Math.round(rdd/rd.length*100):null
+  };
+}
+function goalCurrent(g){
+  const ts=DB.tasks.filter(t=>t.cycleId===g.cycleId&&t.type===g.type&&t.status==='done');
+  if(g.type==='sport') return ts.length;            // 次数
+  return +(ts.reduce((s,t)=>s+(t.duration||0),0)/60).toFixed(1); // 小时
+}
+function dayMark(d){
+  const iso=fmt(d);
+  const todayIso=fmt(startOfDay(new Date()));
+  const ts=DB.tasks.filter(t=>t.date===iso);
+  if(iso===todayIso) return 'cur';
+  if(ts.some(t=>t.status==='done')) return 'done';
+  if(ts.length) return 'todo';
+  return 'none';
+}
+function streakDays(){
+  let n=0;const t=startOfDay(new Date());
+  for(let i=0;i<366;i++){
+    const d=addDays(t,-i);
+    const has=DB.tasks.some(x=>x.date===fmt(d)&&x.status==='done');
+    if(has) n++;
+    else if(i===0) continue;
+    else break;
+  }
+  return n;
+}
+function monthStats(){
+  const now=new Date(),y=now.getFullYear(),m=now.getMonth();
+  const inM=t=>{const d=parseDate(t.date);return d.getFullYear()===y&&d.getMonth()===m;};
+  const sp=DB.tasks.filter(t=>inM(t)&&t.type==='sport'&&t.status==='done');
+  const st=DB.tasks.filter(t=>inM(t)&&t.type==='study'&&t.status==='done');
+  const rd=DB.tasks.filter(t=>inM(t)&&t.type==='reading'&&t.status==='done');
+  return {
+    sport:sp.length,
+    study:+(st.reduce((s,t)=>s+(t.duration||0),0)/60).toFixed(1),
+    reading:{count:rd.length, minutes:+(rd.reduce((s,t)=>s+(t.duration||0),0)/60).toFixed(1)*60},
+    total:DB.tasks.filter(t=>t.status==='done').length
+  };
+}
+
+/* ============ 全局状态 ============ */
+const state={tab:'home', sportSub:'today', studySub:'today', readingSub:'today', histOpen:{}};
+
+/* ============ 渲染：底部导航 ============ */
+const ICONS={
+  home:'<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V20h14V9.5"/><path d="M9.5 20v-6h5v6"/></svg>',
+  sport:'<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="7" r="2.2"/><circle cx="18" cy="7" r="2.2"/><circle cx="6" cy="17" r="2.2"/><circle cx="18" cy="17" r="2.2"/><path d="M8 7h8M8 17h8M6 9.2v5.6M18 9.2v5.6"/></svg>',
+  study:'<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5.5A1.5 1.5 0 0 1 4.5 4H10v15H4.5A1.5 1.5 0 0 1 3 17.5z"/><path d="M21 5.5A1.5 1.5 0 0 0 19.5 4H14v15h5.5A1.5 1.5 0 0 0 21 17.5z"/><path d="M14 4h-4v15h4"/></svg>',
+  reading:'<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6.5C10.5 5.2 8.3 4.6 5.5 4.8 4 4.9 3 5.4 3 6.6V17c0 1 .9 1.5 2.2 1.4 2.6-.2 4.6-.7 6.3-1.8"/><path d="M12 6.5C13.5 5.2 15.7 4.6 18.5 4.8 20 4.9 21 5.4 21 6.6V17c0 1-.9 1.5-2.2 1.4-2.6-.2-4.6-.7-6.3-1.8"/></svg>',
+  cycle:'<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="4.5" width="17" height="16" rx="2.5"/><path d="M3.5 9h17M8 3v3M16 3v3"/></svg>',
+  me:'<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.4"/><path d="M5 20c0-3.6 3.1-6 7-6s7 2.4 7 6"/></svg>'
+};
+const TABS=[['home','首页'],['sport','运动'],['study','学习'],['reading','阅读'],['cycle','周期'],['me','我的']];
+function renderTabbar(){
+  const el=document.getElementById('tabbar');
+  el.innerHTML=TABS.map(([k,label])=>`<div class="tab ${state.tab===k?'on':''}" data-tab="${k}">${ICONS[k]}<span class="tx">${label}</span></div>`).join('');
+}
+
+/* ============ 渲染：顶部栏 ============ */
+function renderTopbar(title,sub){
+  document.getElementById('topbar').innerHTML=
+    `<div class="top-row"><div><div class="top-title">${title}</div>${sub?`<div class="top-sub">${sub}</div>`:''}</div></div>`;
+}
+
+/* ============ 渲染：任务卡片 ============ */
+function taskHTML(t){
+  const done=t.status==='done';
+  const resCount=(t.resources||[]).length;
+  const rBadge=resCount?`<span class="vbadge">📎 ${resCount} 资源</span>`:'';
+  const dur=t.duration?`<span>⏱ ${t.duration} 分钟</span>`:'';
+  const note=t.note?`<span>📝</span>`:'';
+  const pg=(t.type==='reading'&&t.pages)?`<span>📄 ${t.pages} 页</span>`:'';
+  return `<div class="task ${done?'done':''}" data-act="open" data-id="${t.id}">
+    <div class="check" data-act="toggle" data-id="${t.id}">${done?'✓':''}</div>
+    <div class="body">
+      <div class="tt">${esc(t.title)}</div>
+      <div class="meta">${dur}${pg}${rBadge}${note}</div>
+    </div>
+    <span class="tag ${t.type}">${TYPE_LABEL[t.type]||'任务'}</span>
+  </div>`;
+}
+function emptyHTML(msg,type){
+  return `<div class="empty"><div class="emo">${TYPE_EMO[type]||'📌'}</div>
+    <div class="msg">${msg}</div>
+    <button class="btn ghost" style="width:auto;padding:10px 20px" data-act="add" data-type="${type}">＋ 添加${TYPE_LABEL[type]||''}任务</button></div>`;
+}
+
+/* ============ 渲染：首页 ============ */
+function renderHome(){
+  const today=startOfDay(new Date());
+  const cid=currentCycleId();
+  const todays=DB.tasks.filter(t=>t.date===fmt(today));
+  const done=todays.filter(t=>t.status==='done').length;
+  const total=todays.length;
+  const pct=total?Math.round(done/total*100):0;
+  const sport=todays.filter(t=>t.type==='sport');
+  const study=todays.filter(t=>t.type==='study');
+  const reading=todays.filter(t=>t.type==='reading');
+  const sdone=sport.filter(t=>t.status==='done').length;
+  const tdones=study.filter(t=>t.status==='done').length;
+  const rdone=reading.filter(t=>t.status==='done').length;
+
+  renderTopbar('今天');
+  document.getElementById('view').innerHTML=`
+    <div class="today-hero">
+      <div class="label">今天</div>
+      <div class="date">${fmtCN(today)} · ${weekdayCN(today)}</div>
+      <div class="cycle">📅 当前周期 <b>${cycleRangeStr(cid)}</b></div>
+    </div>
+
+    <div class="card ring-card">
+      <div class="ring-wrap">
+        ${ringSVG(pct)}
+        <div class="pct"><b>${pct}%</b><span>今日完成</span></div>
+      </div>
+      <div class="ring-info">
+        <div class="t">${done} / ${total} 项</div>
+        <div class="d">已完成 <b>${done}</b> · 待完成 <b>${total-done}</b></div>
+        <div class="d" style="margin-top:6px">点击任务即可标记完成 ✅</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="head"><div class="t">🏃 运动</div><div class="s"><b>${sdone}</b> / ${sport.length}</div></div>
+      ${sport.length?sport.map(taskHTML).join(''):emptyHTML('今天还没有运动计划','sport')}
+    </div>
+
+    <div class="card">
+      <div class="head"><div class="t">📚 学习</div><div class="s"><b>${tdones}</b> / ${study.length}</div></div>
+      ${study.length?study.map(taskHTML).join(''):emptyHTML('今天还没有学习计划','study')}
+    </div>
+
+    <div class="card">
+      <div class="head"><div class="t">📖 阅读</div><div class="s"><b>${rdone}</b> / ${reading.length}</div></div>
+      ${reading.length?reading.map(taskHTML).join(''):emptyHTML('今天还没有阅读计划','reading')}
+    </div>
+  `;
+}
+function ringSVG(pct){
+  const r=40,c=2*Math.PI*r,off=c*(1-pct/100);
+  return `<svg width="92" height="92" viewBox="0 0 92 92">
+    <circle cx="46" cy="46" r="${r}" fill="none" stroke="#FFE0E4" stroke-width="9"/>
+    <circle cx="46" cy="46" r="${r}" fill="none" stroke="#FF7A8A" stroke-width="9" stroke-linecap="round"
+      stroke-dasharray="${c}" stroke-dashoffset="${off}" transform="rotate(-90 46 46)"/>
+  </svg>`;
+}
+
+/* ============ 渲染：运动 / 学习 / 阅读 ============ */
+function renderList(type){
+  const sub=state[type+'Sub'];
+  const todayIso=fmt(startOfDay(new Date()));
+  let tasks;
+  if(sub==='today') tasks=DB.tasks.filter(t=>t.type===type&&t.date===todayIso);
+  else if(sub==='week') tasks=DB.tasks.filter(t=>t.type===type&&t.cycleId===currentCycleId());
+  else tasks=DB.tasks.filter(t=>t.type===type);
+  tasks.sort((a,b)=> a.date.localeCompare(b.date) || (a.status==='done')-(b.status==='done'));
+  const total=tasks.length, done=tasks.filter(t=>t.status==='done').length;
+  const title=TYPE_LABEL[type]||'任务';
+
+  renderTopbar(title);
+  document.getElementById('view').innerHTML=`
+    <div class="subtabs">
+      ${[['today','今日'],['week','本周'],['all','全部']].map(([k,l])=>
+        `<button class="subtab ${sub===k?'on':''}" data-act="sub" data-type="${type}" data-sub="${k}">${l}</button>`).join('')}
+    </div>
+    <div class="card">
+      <div class="head"><div class="t">${TYPE_EMO[type]||''} ${title}任务</div><div class="s"><b>${done}</b> / ${total}</div></div>
+      ${tasks.length?tasks.map(taskHTML).join(''):emptyHTML('这里还没有'+title+'任务',''+type)}
+    </div>
+    <button class="btn ghost" data-act="add" data-type="${type}" style="margin-bottom:14px">＋ 新建${title}任务</button>
+  `;
+}
+
+/* ============ 渲染：周期 ============ */
+function renderCycle(){
+  const today=startOfDay(new Date());
+  const cid=currentCycleId();
+  const st=cycleStats(cid);
+  const [s,e]=[startOfWeek(today),endOfWeek(today)];
+  let strip='';
+  for(let i=0;i<7;i++){
+    const d=addDays(s,i);
+    const mk=dayMark(d);
+    const mkTxt=mk==='cur'?'●':mk==='done'?'✓':mk==='todo'?'○':'·';
+    strip+=`<div class="wd ${mk==='cur'?'cur':''}">
+      <div class="dow">${WD[(i+1)%7]}</div>
+      <div class="num">${d.getDate()}</div>
+      <div class="mk ${mk}">${mkTxt}</div></div>`;
+  }
+  const sg=DB.goals.find(g=>g.cycleId===cid&&g.type==='sport');
+  const tg=DB.goals.find(g=>g.cycleId===cid&&g.type==='study');
+  const rg=DB.goals.find(g=>g.cycleId===cid&&g.type==='reading');
+  function goalHTML(g,color){
+    if(!g)return '';
+    const cur=goalCurrent(g);
+    const pct=Math.min(100,Math.round(cur/g.target*100));
+    const isH=g.unit==='小时';
+    const lbl=g.type==='sport'?'🏃 运动':g.type==='study'?'📚 学习':'📖 阅读';
+    return `<div class="goal">
+      <div class="gh"><span>${lbl} ${g.target} ${g.unit}</span>
+        <span><b>${isH?cur.toFixed(1):cur}</b> / ${g.target} · ${pct}%</span></div>
+      <div class="bar"><i style="width:${pct}%;background:${color}"></i></div></div>`;
+  }
+  let hist='';
+  for(let w=1;w<=10;w++){
+    const ws=addDays(s,-7*w);
+    const id=fmt(ws);
+    const cs=cycleStats(id);
+    if(cs.total===0) continue;
+    const open=state.histOpen[id];
+    let det='';
+    if(open){
+      const rateLine=`完成度 ${cs.rate}% · 运动 ${cs.sportRate}% · 学习 ${cs.studyRate}%${cs.readingRate!==null?` · 阅读 ${cs.readingRate}%`:''}`;
+      det=`<div class="det"><div class="gh" style="font-size:12px;color:var(--muted);margin-bottom:6px">${rateLine}</div>`;
+      for(let i=0;i<7;i++){
+        const d=addDays(ws,i);
+        const ts=tasksOfCycle(id).filter(t=>t.date===fmt(d));
+        const dd=ts.filter(t=>t.status==='done').length;
+        det+=`<div class="day"><span>${WD[(i+1)%7]} ${d.getDate()}日</span>
+          <span>${ts.length?`完成 ${dd}/${ts.length}`:'—'}</span></div>`;
+      }
+      det+='</div>';
+    }
+    hist+=`<div class="hist">
+      <div class="hh" data-act="hist" data-id="${id}">
+        <span class="l">${cycleRangeStr(id)}</span>
+        <span class="r">${cs.rate!==null?`<b>${cs.rate}%</b>`:'暂无数据'} ${open?'▾':'▸'}</span>
+      </div>${det}</div>`;
+  }
+
+  renderTopbar('周期',cycleRangeStr(cid));
+  document.getElementById('view').innerHTML=`
+    <div class="card">
+      <div class="head"><div class="t">本周</div><div class="s">${cycleRangeStr(cid)}</div></div>
+      <div class="week-strip">${strip}</div>
+    </div>
+
+    <div class="card">
+      <div class="head"><div class="t">本周完成度</div><div class="s"><b>${st.rate!==null?st.rate+'%':'暂无数据'}</b></div></div>
+      <div class="goal">
+        <div class="gh"><span>运动</span><span><b>${st.sportRate!==null?st.sportRate+'%':'—'}</b></span></div>
+        <div class="bar"><i style="width:${st.sportRate||0}%;background:var(--sport)"></i></div>
+      </div>
+      <div class="goal">
+        <div class="gh"><span>学习</span><span><b>${st.studyRate!==null?st.studyRate+'%':'—'}</b></span></div>
+        <div class="bar"><i style="width:${st.studyRate||0}%;background:var(--study)"></i></div>
+      </div>
+      <div class="goal">
+        <div class="gh"><span>阅读</span><span><b>${st.readingRate!==null?st.readingRate+'%':'—'}</b></span></div>
+        <div class="bar"><i style="width:${st.readingRate||0}%;background:var(--reading)"></i></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="head"><div class="t">周目标</div></div>
+      ${goalHTML(sg,'var(--sport)')}
+      ${goalHTML(tg,'var(--study)')}
+      ${goalHTML(rg,'var(--reading)')}
+      <button class="btn ghost" data-act="copyWeek" style="margin-top:14px">⧉ 复制到下一周期</button>
+    </div>
+
+    <div class="card">
+      <div class="head"><div class="t">历史周期</div></div>
+      ${hist||'<div class="empty"><div class="msg">还没有完成的周期<br>从这一周开始记录吧</div></div>'}
+    </div>
+  `;
+}
+
+/* ============ 渲染：我的 ============ */
+function renderMe(){
+  const st=streakDays();
+  const ms=monthStats();
+  const readH=(ms.reading.minutes/60).toFixed(1);
+  renderTopbar('我的');
+  document.getElementById('view').innerHTML=`
+    <div class="stats">
+      <div class="stat"><div class="n acc">${st}</div><div class="l">连续完成（天）</div></div>
+      <div class="stat"><div class="n sport">${ms.sport}</div><div class="l">本月运动（次）</div></div>
+      <div class="stat"><div class="n study">${ms.study}</div><div class="l">本月学习（小时）</div></div>
+      <div class="stat"><div class="n reading">${readH}</div><div class="l">本月阅读（小时）</div></div>
+    </div>
+
+    <div class="card">
+      <div class="head"><div class="t">数据管理</div></div>
+      <div class="row" data-act="export"><span>⬇️ 导出数据（JSON）</span><span class="r">›</span></div>
+      <div class="row" data-act="import"><span>⬆️ 导入数据（JSON）</span><span class="r">›</span></div>
+      <div class="row" data-act="clear"><span style="color:#E5484D">🗑 清除所有数据</span><span class="r">›</span></div>
+    </div>
+
+    <div class="card">
+      <div class="head"><div class="t">关于</div></div>
+      <div class="about">
+        <b>WeekFlow</b> · 个人运动 × 学习 × 阅读 周期管理<br>
+        以「一周为一个周期」，让你每天只专注于运动、学习与阅读。<br><br>
+        本地数据 · 无需账号 · 离线可用<br>
+        当前版本：网页原型 V1.1（PRD V1.0）
+      </div>
+    </div>
+  `;
+}
+
+/* ============ 弹层 ============ */
+function showOverlay(html){document.getElementById('overlayRoot').innerHTML=`<div class="overlay" data-act="overlay">${html}</div>`;}
+function closeOverlay(){document.getElementById('overlayRoot').innerHTML='';}
+
+function openTaskForm(existing, presetType){
+  const todayIso=fmt(startOfDay(new Date()));
+  const [s,e]=[startOfWeek(new Date()),endOfWeek(new Date())];
+  let dayOpts='';
+  for(let i=0;i<7;i++){
+    const d=addDays(s,i);
+    const iso=fmt(d);
+    dayOpts+=`<option value="${iso}" ${iso===todayIso?'selected':''}>${WD[(i+1)%7]} ${fmtCN(d)}${iso===todayIso?'（今天）':''}</option>`;
+  }
+  const t=existing||{title:'',type:presetType||'sport',date:todayIso,duration:'',pages:null,note:'',resources:[]};
+  formDraft={existingId:existing?existing.id:null,type:t.type,resources:(t.resources||[]).map(r=>({...r}))};
+  const isEdit=!!existing;
+  const durLabel=formDraft.type==='reading'?'预计阅读时间（分钟）':'预计时长（分钟）';
+  const pagesShow=formDraft.type==='reading'?'':'display:none';
+  showOverlay(`
+    <div class="sheet">
+      <div class="sh"><div class="t">${isEdit?'编辑任务':'新建任务'}</div><div class="x" data-act="close">×</div></div>
+      <div class="field"><label>任务名称</label><input id="f-title" placeholder="例如：跑步 30 分钟" value="${esc(t.title)}"></div>
+      <div class="field"><label>所属模块</label>
+        <div class="seg">
+          <button class="seg-btn ${t.type==='sport'?'on':''}" data-type="sport" data-act="seg">运动</button>
+          <button class="seg-btn ${t.type==='study'?'on':''}" data-type="study" data-act="seg">学习</button>
+          <button class="seg-btn ${t.type==='reading'?'on':''}" data-type="reading" data-act="seg">阅读</button>
+        </div></div>
+      <div class="field"><label>所属日期（当前周期内）</label><select id="f-date">${dayOpts}</select></div>
+      <div class="field"><label id="durLabel">${durLabel}</label><input id="f-dur" type="number" min="0" placeholder="例如 30" value="${t.duration||''}"></div>
+      <div class="field" id="pagesField" style="${pagesShow}"><label>预计页数（阅读，可选）</label><input id="f-pages" type="number" min="0" placeholder="例如 30" value="${t.pages||''}"></div>
+      <div class="field"><label>备注</label><textarea id="f-note" placeholder="例如：今天保持轻松配速">${esc(t.note||'')}</textarea></div>
+      <div class="field"><label>资源（可选，可添加多个：本地视频 / B站 / PDF / 网页）</label>
+        <div class="video-row" id="resList">
+          ${formDraft.resources.map((r,i)=>`<span class="chip" data-act="delRes" data-i="${i}">${resIcon(r)} ${esc(resTitle(r))} ×</span>`).join('')||'<span style="font-size:12px;color:var(--muted)">暂未添加</span>'}
+        </div>
+        <div class="video-row" style="margin-top:10px">
+          <label class="chip">＋ 本地视频<input id="f-video" type="file" accept="video/*" hidden></label>
+          <span class="chip" data-act="addBili">＋ B站链接</span>
+          <span class="chip" data-act="addPdf">＋ PDF 链接</span>
+          <span class="chip" data-act="addWeb">＋ 网页链接</span>
+        </div>
+      </div>
+      <div class="sheet-actions">
+        <button class="btn ghost" data-act="close">取消</button>
+        <button class="btn primary" data-act="saveTask">保存</button>
+      </div>
+    </div>`);
+}
+
+function openDetail(t){
+  const resHTML=(t.resources||[]).map(r=>`<button class="vbtn" data-act="openRes" data-id="${t.id}" data-rid="${r.id}">${resIcon(r)} ${esc(resTitle(r))}</button>`).join('');
+  const typeLbl=TYPE_LABEL[t.type]||'任务';
+  const pages=(t.type==='reading'&&t.pages)?`<span>📄 ${t.pages} 页</span>`:'';
+  showOverlay(`
+    <div class="sheet">
+      <div class="sh"><div class="t">${esc(t.title)}</div><div class="x" data-act="close">×</div></div>
+      <div class="detail-meta">
+        <span class="tag ${t.type}">${typeLbl}</span>
+        <span>📅 ${fmtCN(parseDate(t.date))} ${weekdayCN(parseDate(t.date))}</span>
+        ${t.duration?`<span>⏱ ${t.duration} 分钟</span>`:''}
+        ${pages}
+      </div>
+      ${t.note?`<div class="detail-note">${esc(t.note)}</div>`:''}
+      ${resHTML?`<div style="margin:8px 0"><div class="sec-title" style="margin-bottom:8px">资源</div>${resHTML}</div>`:''}
+      ${t.status==='done'?`<div class="done-at">✅ 完成于 ${esc(t.completedAt||'')}</div>`:''}
+      <div class="sheet-actions">
+        <button class="btn ghost" data-act="toggle" data-id="${t.id}">${t.status==='done'?'取消完成':'标记完成'}</button>
+        <button class="btn ghost" data-act="edit" data-id="${t.id}">编辑</button>
+      </div>
+      <div class="sheet-actions">
+        <button class="btn ghost" data-act="copyTask" data-id="${t.id}">复制</button>
+        <button class="btn danger" data-act="delTask" data-id="${t.id}">删除</button>
+      </div>
+    </div>`);
+}
+
+/* ============ 播放器页面（独立全屏，非弹窗） ============ */
+function openPlayer(taskId,resId){ closeOverlay(); player={taskId,resId}; render(); }
+function closePlayer(){ player=null; document.getElementById('tabbar').classList.remove('hidden'); render(); }
+function renderPlayer(){
+  const t=DB.tasks.find(x=>x.id===player.taskId);
+  const r=t&&(t.resources||[]).find(x=>x.id===player.resId);
+  document.getElementById('tabbar').classList.add('hidden');
+  document.getElementById('topbar').innerHTML='';
+  const view=document.getElementById('view');
+  if(!t||!r||r.type!=='local'||!r.localUrl){
+    view.innerHTML=`<div class="player">
+      <div class="ph"><span class="back" data-act="closePlayer">×</span><span class="pt">视频不可用</span></div>
+      <div class="pempty">
+        <div class="big">📭</div>
+        <div>视频文件不存在</div>
+        <button class="btn accent" data-act="reselectRes" data-rid="${r?r.id:''}">重新选择视频</button>
+      </div>
+    </div>`;
+    return;
+  }
+  view.innerHTML=`<div class="player">
+    <div class="ph"><span class="back" data-act="closePlayer">×</span><span class="pt">${esc(resTitle(r))}</span></div>
+    <video id="pv" src="${r.localUrl}" controls playsinline style="flex:1;width:100%;background:#000;object-fit:contain"></video>
+    <div class="pactions">
+      <button class="btn ghost" data-act="pFull">⛶ 全屏</button>
+      <button class="btn accent" data-act="closePlayer">返回</button>
+    </div>
+  </div>`;
+  const v=document.getElementById('pv');
+  if(v) v.play().catch(()=>{});
+}
+
+/* ============ 业务操作 ============ */
+function toggleTask(id){
+  const t=DB.tasks.find(x=>x.id===id);if(!t)return;
+  t.status=t.status==='done'?'pending':'done';
+  t.completedAt=t.status==='done'?(fmtCN(parseDate(t.date))+' '+nowHM()):null;
+  save();render();toast(t.status==='done'?'已完成 ✅':'已取消完成');
+}
+function saveTask(){
+  const title=document.getElementById('f-title').value.trim();
+  if(!title){toast('请填写任务名称');return;}
+  const date=document.getElementById('f-date').value;
+  const dur=document.getElementById('f-dur').value;
+  const note=document.getElementById('f-note').value.trim();
+  const pagesField=document.getElementById('f-pages');
+  const pages=(formDraft.type==='reading'&&pagesField&&pagesField.value)?+pagesField.value:null;
+  const id=formDraft.existingId;
+  if(id){
+    const t=DB.tasks.find(x=>x.id===id);
+    Object.assign(t,{title,type:formDraft.type,date,cycleId:cycleIdForDate(parseDate(date)),
+      duration:dur?+dur:null,pages,note,resources:formDraft.resources});
+  }else{
+    DB.tasks.push({id:uid(),title,type:formDraft.type,date,cycleId:cycleIdForDate(parseDate(date)),
+      duration:dur?+dur:null,pages,note,status:'pending',completedAt:null,createdAt:fmt(new Date()),resources:formDraft.resources});
+  }
+  save();closeOverlay();render();toast('已保存');
+}
+function copyTask(id){
+  const t=DB.tasks.find(x=>x.id===id);if(!t)return;
+  DB.tasks.push({...t,id:uid(),status:'pending',completedAt:null,
+    resources:(t.resources||[]).map(r=>({...r})),createdAt:fmt(new Date())});
+  save();closeOverlay();render();toast('已复制任务');
+}
+function delTask(id){
+  if(!confirm('删除任务？\n删除后将无法恢复。'))return;
+  DB.tasks=DB.tasks.filter(x=>x.id!==id);
+  save();closeOverlay();render();toast('已删除');
+}
+function copyWeek(){
+  const cid=currentCycleId();
+  const src=DB.tasks.filter(t=>t.cycleId===cid);
+  if(!src.length){toast('本周还没有任务可复制');return;}
+  const ns=addDays(startOfWeek(new Date()),7);
+  src.forEach(t=>{
+    const nd=addDays(parseDate(t.date),7);
+    DB.tasks.push({...t,id:uid(),date:fmt(nd),cycleId:fmt(ns),status:'pending',completedAt:null,
+      resources:(t.resources||[]).map(r=>({...r}))});
+  });
+  DB.goals.filter(g=>g.cycleId===cid).forEach(g=>DB.goals.push({...g,id:uid(),cycleId:fmt(ns)}));
+  save();render();toast('已复制到下一周期（'+cycleRangeStr(fmt(ns))+'）');
+}
+function exportData(){
+  const blob=new Blob([JSON.stringify(DB,null,2)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='weekflow-backup-'+fmt(new Date())+'.json';
+  a.click();URL.revokeObjectURL(a.href);toast('已导出');
+}
+function importData(file){
+  const r=new FileReader();
+  r.onload=()=>{
+    try{
+      const d=JSON.parse(r.result);
+      if(!d.tasks||!d.goals) throw 0;
+      DB=d;normalizeDB();save();render();toast('导入成功：'+d.tasks.length+' 个任务');
+    }catch(e){toast('文件格式不正确');}
+  };
+  r.readAsText(file);
+}
+function clearData(){
+  if(!confirm('清除所有数据？此操作不可恢复。'))return;
+  DB={tasks:[],goals:[],settings:{theme:'light'},seeded:true};
+  save();render();toast('已清除');
+}
+
+/* ============ 事件 ============ */
+function toast(msg){
+  const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');
+  clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove('show'),1800);
+}
+document.addEventListener('click',e=>{
+  const el=e.target.closest('[data-act],[data-tab]');
+  if(!el)return;
+  const act=el.dataset.act, id=el.dataset.id;
+  if(el.dataset.tab){state.tab=el.dataset.tab;render();return;}
+  if(!act)return;
+  switch(act){
+    case 'overlay': if(e.target.classList.contains('overlay'))closeOverlay(); break;
+    case 'close': closeOverlay(); break;
+    case 'toggle': toggleTask(id); break;
+    case 'open': {const t=DB.tasks.find(x=>x.id===id);if(t)openDetail(t);} break;
+    case 'add': openTaskForm(null,el.dataset.type||'sport'); break;
+    case 'seg': {
+      formDraft.type=el.dataset.type;
+      document.querySelectorAll('.seg-btn').forEach(b=>b.classList.toggle('on',b.dataset.type===formDraft.type));
+      const pf=document.getElementById('pagesField'); if(pf)pf.style.display=formDraft.type==='reading'?'':'none';
+      const dl=document.getElementById('durLabel'); if(dl)dl.textContent=formDraft.type==='reading'?'预计阅读时间（分钟）':'预计时长（分钟）';
+      break;
+    }
+    case 'saveTask': saveTask(); break;
+    case 'edit': {const t=DB.tasks.find(x=>x.id===id);if(t)openTaskForm(t);} break;
+    case 'copyTask': copyTask(id); break;
+    case 'delTask': delTask(id); break;
+    case 'openRes': openResource(id,el.dataset.rid); break;
+    case 'closePlayer': closePlayer(); break;
+    case 'pFull': { const v=document.getElementById('pv'); if(v&&v.requestFullscreen)v.requestFullscreen(); break; }
+    case 'reselectRes': {
+      const tk=DB.tasks.find(x=>x.id===player.taskId);
+      const r=tk&&tk.resources.find(x=>x.id===el.dataset.rid);
+      if(!r)break;
+      const inp=document.createElement('input');inp.type='file';inp.accept='video/*';
+      inp.onchange=()=>{ if(inp.files[0]){ r.localUrl=URL.createObjectURL(inp.files[0]); r.localPath=inp.files[0].name; save(); renderPlayer(); toast('已更新视频'); } };
+      inp.click();
+      break;
+    }
+    case 'sub': state[el.dataset.type+'Sub']=el.dataset.sub;render(); break;
+    case 'hist': state.histOpen[id]=!state.histOpen[id];render(); break;
+    case 'copyWeek': copyWeek(); break;
+    case 'export': exportData(); break;
+    case 'import': {const inp=document.createElement('input');inp.type='file';inp.accept='application/json';inp.onchange=()=>{if(inp.files[0])importData(inp.files[0]);};inp.click();} break;
+    case 'clear': clearData(); break;
+    case 'addBili': {
+      const url=prompt('粘贴 B站视频链接：','https://www.bilibili.com/video/');
+      if(url){const title=prompt('资源标题（如：热身/正式训练）：','B站视频')||'B站视频';formDraft.resources.push(newResource('bilibili',{title,url}));renderResChips();}
+      break;
+    }
+    case 'addPdf': {
+      const url=prompt('粘贴 PDF 链接：','https://');
+      if(url){const title=prompt('资源标题：','PDF 文档')||'PDF 文档';formDraft.resources.push(newResource('pdf',{title,url}));renderResChips();}
+      break;
+    }
+    case 'addWeb': {
+      const url=prompt('粘贴网页 / 微信读书链接：','https://');
+      if(url){const title=prompt('资源标题：','网页链接')||'网页链接';formDraft.resources.push(newResource('web',{title,url}));renderResChips();}
+      break;
+    }
+    case 'delRes': formDraft.resources.splice(+el.dataset.i,1);renderResChips(); break;
+  }
+});
+document.addEventListener('change',e=>{
+  if(e.target.id==='f-video'&&e.target.files[0]){
+    const f=e.target.files[0];
+    formDraft.resources.push(newResource('local',{title:f.name,localPath:f.name,localUrl:URL.createObjectURL(f)}));
+    renderResChips();
+  }
+});
+function renderResChips(){
+  const box=document.getElementById('resList');
+  if(!box)return;
+  box.innerHTML=formDraft.resources.map((r,i)=>`<span class="chip" data-act="delRes" data-i="${i}">${resIcon(r)} ${esc(resTitle(r))} ×</span>`).join('')||'<span style="font-size:12px;color:var(--muted)">暂未添加</span>';
+}
+
+/* ============ 启动 ============ */
+function init(){
+  DB=load();
+  if(!DB||!DB.tasks){DB=seed();save();}
+  normalizeDB();
+  ensureReadingSeed();
+  save();
+  renderTabbar();
+  render();
+}
+function render(){
+  if(player){ renderPlayer(); return; }
+  renderTabbar();
+  if(state.tab==='home')renderHome();
+  else if(state.tab==='sport')renderList('sport');
+  else if(state.tab==='study')renderList('study');
+  else if(state.tab==='reading')renderList('reading');
+  else if(state.tab==='cycle')renderCycle();
+  else if(state.tab==='me')renderMe();
+}
+init();
+</script>
+</body>
+</html>
