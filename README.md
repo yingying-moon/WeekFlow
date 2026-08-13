@@ -1,10 +1,11 @@
 # WeekFlow · 个人运动 × 学习周期管理
 
 > 以「一周」为一个周期，专注今天。一个帮你把运动和学习都照顾到的极简本地 App。
-> *WeekFlow — a calm, local-first weekly planner for your workouts & studies.*
+> *WeekFlow — a calm, local-first weekly planner for your workouts, studies & reading.*
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Platform](https://img.shields.io/badge/Platform-Android%207%2B-green.svg)](release/)
+[![Release](https://img.shields.io/badge/Release-v1.0.0-orange.svg)](https://github.com/yingying-moon/WeekFlow/releases/tag/v1.0.0)
+[![Platform](https://img.shields.io/badge/Platform-Android%207%2B-green.svg)](https://github.com/yingying-moon/WeekFlow/releases/tag/v1.0.0)
 
 ---
 
@@ -80,7 +81,9 @@ WeekFlow/
 
 直接下载安装包即可：
 
-👉 [`release/WeekFlow-v1.0.0-release.apk`](release/WeekFlow-v1.0.0-release.apk)
+👉 [**下载 APK v1.0.0**](https://github.com/yingying-moon/WeekFlow/releases/tag/v1.0.0)（下载 `WeekFlow-v1.0.0-release.apk`）
+
+> 源码中也保留了同一份安装包：`release/WeekFlow-v1.0.0-release.apk`
 
 - 支持 **Android 7.0（API 24）及以上**
 - Release 签名（v2 scheme），可直接安装
